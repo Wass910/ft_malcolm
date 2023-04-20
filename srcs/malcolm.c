@@ -77,8 +77,9 @@ int main(int argc, char **argv)
     t_arp_packet_receive receive;
     struct in_addr src_ip_rec, dest_ip_rec;
     all.interface = argv[3];
+    struct sockaddr_in client_addr;
+    socklen_t client_addr_len = sizeof(client_addr);
     
-
     all.sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if(all.sockfd < 0) {
         perror("socket");
@@ -87,7 +88,7 @@ int main(int argc, char **argv)
     printf("Waiting arp request to spoof...\n\n");
 
     while(1) {
-        recvfrom(all.sockfd, buffer, ETH_FRAME_LEN, 0, (struct sockaddr*)&all.saddr, (socklen_t*)sizeof(all.saddr));
+        recvfrom(all.sockfd, buffer, ETH_FRAME_LEN, 0, (struct sockaddr*)&all.saddr, &client_addr_len);
         receive.ethhdr = (struct ether_header *) buffer;
         receive.arphdr = (t_arphdr *) (buffer + sizeof(struct ether_header));
         if(ntohs(receive.ethhdr->ether_type) == ETHERTYPE_ARP && ntohs(receive.arphdr->ar_op) == ARPOP_REQUEST) 

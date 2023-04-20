@@ -6,7 +6,7 @@ OBJS			= $(SRC:.c=.o)
 
 NAME			= ft_malcolm
 
-CFLAGS			= -Wall -Wextra -Werror 
+CFLAGS			= -Wall -Wextra -Werror -g
 
 RM				= rm -rf
 
