@@ -15,8 +15,6 @@
 #include <net/if_arp.h>
 #include <sys/ioctl.h>
 #include <net/ethernet.h>
+#include <signal.h>
 
 #define BUFFER_SIZE 1514
-#define MAC_ADRESS 18
-
-char			**ft_split(char const *s, char c);
