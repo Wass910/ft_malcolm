@@ -144,12 +144,12 @@ void    verbose_print()
     return ;
 }
 
-void    request_reply(char *ip_source, char *mac_source, char *ip_target, char *mac_target, struct in_addr dest_ip_rec)
+void    request_reply(char *mac_source, char *ip_target, char *mac_target, struct in_addr dest_ip_rec)
 {
     int if_index;
 
     fill_target_and_source(delete_double_point(mac_source), delete_double_point(mac_target));
-    str_to_ip(ip_source, all.ip_address_source);
+    //str_to_ip(ip_source, all.ip_address_source);
     str_to_ip(ip_target, all.ip_address_target);
     all.response.arphdr.ar_hrd = htons(ARPHRD_ETHER);
     all.response.arphdr.ar_pro = htons(ETH_P_IP);
@@ -232,19 +232,19 @@ int		ft_strlen(char *s)
 int main(int argc, char **argv) 
 {
     if (getuid() != 0)
-        exit_msg("Usage: sudo <ft_malcolm> [source ip] [source mac address] [target ip] [target mac address] option : (-v)");
+        exit_msg("Usage: sudo <ft_malcolm> [source mac address] [target ip] [target mac address] option : (-v)");
     all.verbose = 0;
-    if (argc != 5 )
+    if (argc != 4 )
     {
-        if (argc == 6)
+        if (argc == 5)
         {
-            if (ft_strncmp((argv[5]), "-v", ft_strlen("-v")) == 0 && ft_strlen(argv[5]) == ft_strlen("-v"))
+            if (ft_strncmp((argv[4]), "-v", ft_strlen("-v")) == 0 && ft_strlen(argv[4]) == ft_strlen("-v"))
                 all.verbose = 1;
             else 
-                exit_msg("Usage: sudo <ft_malcolm> [source ip] [source mac address] [target ip] [target mac address] option : (-v)");
+                exit_msg("Usage: sudo <ft_malcolm> [source mac address] [target ip] [target mac address] option : (-v)");
         }
         else
-            exit_msg("Usage: sudo <ft_malcolm> [source ip] [source mac address] [target ip] [target mac address] option : (-v)");
+            exit_msg("Usage: sudo <ft_malcolm> [source mac address] [target ip] [target mac address] option : (-v)");
     }
     signal(SIGINT, inthandler);
     char buffer[BUFFER_SIZE];
@@ -270,9 +270,9 @@ int main(int argc, char **argv)
         {
             ft_memcpy(&src_ip_rec.s_addr, receive.arphdr->ar_spa, sizeof(src_ip_rec.s_addr));
             ft_memcpy(&dest_ip_rec.s_addr, receive.arphdr->ar_tpa, sizeof(src_ip_rec.s_addr));
-            if (inet_addr(argv[3]) == src_ip_rec.s_addr ){
+            if (inet_addr(argv[2]) == src_ip_rec.s_addr ){
                 printf("Spoofing in progress\n\n");
-                request_reply(argv[1], argv[2], argv[3], argv[4], dest_ip_rec);
+                request_reply(argv[1], argv[2], argv[3], dest_ip_rec);
                 printf("\nWaiting arp request to spoof again...\n\n");
                 //break;
             }
